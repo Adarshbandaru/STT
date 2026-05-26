@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced STT</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" x2="12" y1="19" y2="22"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-name">STT</h1>
+          <p class="brand-sub">Advanced Speech-to-Text</p>
+        </div>
+      </div>
+      <div class="header-badge">
+        <span class="badge-dot"></span>
+        <span id="status" class="status-chip status-info">Ready to transcribe.</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- Input Panel -->
+    <section class="panel input-panel">
+      <div class="panel-header">
+        <div class="panel-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" x2="12" y1="3" y2="15"/>
+          </svg>
+        </div>
+        <div>
+          <h2>Input</h2>
+          <p>Upload audio or record live speech with real-time visualization.</p>
+        </div>
+      </div>
+
+      <!-- File upload zone -->
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="audio-file" accept="audio/*" hidden />
+        <div class="upload-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" x2="12" y1="3" y2="15"/>
+          </svg>
+        </div>
+        <p class="upload-text">Drop audio file here or <span class="upload-browse">browse</span></p>
+        <p class="upload-hint">MP3, WAV, M4A, OGG, WebM · any size</p>
+        <div class="file-name" id="file-name"></div>
+      </div>
+
+      <!-- Recording panel (hidden until recording starts) -->
+      <div class="recording-panel" id="recording-panel">
+        <div class="recording-visual">
+          <canvas id="waveform-canvas" width="400" height="80"></canvas>
+          <div class="recording-pulse">
+            <span class="pulse-ring"></span>
+            <span class="pulse-ring delay"></span>
+          </div>
+        </div>
+        <div class="recording-info">
+          <span class="recording-label">
+            <span class="rec-dot"></span>
+            REC
+          </span>
+          <span class="recording-time" id="record-timer">00:00</span>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="form-grid">
+        <div class="field">
+          <label for="language">Language</label>
+          <input type="text" id="language" placeholder="auto or en, es, fr..." />
+        </div>
+        <div class="field toggle-field">
+          <label class="toggle-label">
+            <input type="checkbox" id="translate" />
+            <span class="toggle-switch"></span>
+            <span>Translate to English</span>
+          </label>
+        </div>
+        <div class="field toggle-field">
+          <label class="toggle-label">
+            <input type="checkbox" id="summarize" />
+            <span class="toggle-switch"></span>
+            <span>Generate summary</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button type="submit" form="transcribe-form" class="btn btn-primary" id="transcribe-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Transcribe
+        </button>
+        <button type="button" class="btn btn-record" id="record-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          </svg>
+          <span id="record-label">Record</span>
+        </button>
+      </div>
+
+      <p class="record-hint" id="record-hint">Upload an audio file or record live speech.</p>
+    </section>
+
+    <!-- Results Panel -->
+    <section class="panel results-panel">
+      <div class="panel-header">
+        <div class="panel-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" x2="8" y1="13" y2="13"/>
+            <line x1="16" x2="8" y1="17" y2="17"/>
+            <line x1="10" x2="8" y1="9" y2="9"/>
+          </svg>
+        </div>
+        <div>
+          <h2>Transcript</h2>
+          <p>View the generated text, optional summary, and raw segment data.</p>
+        </div>
+      </div>
+
+      <div class="output-section">
+        <div class="output-label">Transcript</div>
+        <div class="output-text" id="transcript"></div>
+      </div>
+
+      <div class="output-section" id="summary-section" style="display:none">
+        <div class="output-label">Summary</div>
+        <div class="output-text summary-text" id="summary"></div>
+      </div>
+
+      <div class="output-section" id="segments-section" style="display:none">
+        <div class="output-label">Segments</div>
+        <div class="segments-list" id="segments"></div>
+        <details class="segment-data-details">
+          <summary>Raw segment data</summary>
+          <pre id="segment-data"></pre>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <p>Modular UI: <strong>index.html</strong>, <strong>css/app.css</strong>, <strong>js/index.js</strong>, <strong>js/api.js</strong>, <strong>js/recorder.js</strong>, <strong>js/ui.js</strong></p>
+    <p>Served via <code>/static/index.html</code> from FastAPI.</p>
+  </footer>
+
+  <script type="module" src="js/index.js"></script>
+  <script>
+    // ── File upload zone ──────────────────────────────────────────────────
+    const zone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('audio-file');
+    const fileName = document.getElementById('file-name');
+
+    zone.addEventListener('click', () => fileInput.click());
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        showFileName(e.dataTransfer.files[0].name);
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) showFileName(fileInput.files[0].name);
+    });
+
+    function showFileName(name) {
+      fileName.textContent = name;
+      fileName.style.display = 'block';
+    }
+
+    // ── Show summary/segments sections when content arrives ───────────────
+    const summaryObs = new MutationObserver(() => {
+      const s = document.getElementById('summary');
+      if (s && s.textContent.trim()) {
+        document.getElementById('summary-section').style.display = 'block';
+      }
+    });
+    summaryObs.observe(document.getElementById('summary'), { childList: true, characterData: true, subtree: true });
+
+    const segObs = new MutationObserver(() => {
+      const segs = document.getElementById('segments');
+      if (segs && segs.children.length > 0) {
+        document.getElementById('segments-section').style.display = 'block';
+      }
+    });
+    segObs.observe(document.getElementById('segments'), { childList: true });
+  </script>
+</body>
+</html>

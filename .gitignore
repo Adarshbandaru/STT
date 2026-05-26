@@ -1,0 +1,27 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+.venv/
+venv/
+venv\
+*.sqlite3
+*.log
+uploads/
+*.wav
+*.mp3
+*.ogg
+.DS_Store
+.idea/
+.vscode/
+__pycache__/
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# Local system files
+Thumbs.db
