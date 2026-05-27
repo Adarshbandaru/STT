@@ -13,7 +13,6 @@ import { BatchUpload } from "./batch.js";
 import {
   setStatus, clearResults, displayTranscript, displaySummary,
   displaySegments, displaySentiment, displayFormatResult,
-  displayActionItems, displayMeetingOutline, displaySpeakingMetrics,
   showRecordingUI, hideRecordingUI, showAudioPlayer,
   renderBatchQueue, renderHistory, showSettings, hideSettings,
   showToast,
@@ -137,38 +136,15 @@ function bindEvents() {
     });
   });
 
-  // History list delegation (load or delete)
+  // History list delegation
   document.getElementById("history-list")?.addEventListener("click", async (e) => {
-    const deleteBtn = e.target.closest(".btn-delete-history");
-    if (deleteBtn) {
-      const id = parseInt(deleteBtn.dataset.id, 10);
+    const btn = e.target.closest(".btn-delete-history");
+    if (btn) {
+      const id = parseInt(btn.dataset.id, 10);
       await deleteTranscript(id);
       loadHistory();
       showToast("Deleted.", "info");
-      return;
     }
-    
-    const item = e.target.closest(".history-item");
-    if (item) {
-      const del = item.querySelector(".btn-delete-history");
-      if (del) {
-        const id = parseInt(del.dataset.id, 10);
-        await loadHistoryRecord(id);
-      }
-    }
-  });
-
-  // Tab switching logic for Results Dashboard
-  const tabButtons = ["transcript", "briefing", "tasks", "metrics"];
-  tabButtons.forEach((tab) => {
-    document.getElementById(`tab-btn-${tab}`)?.addEventListener("click", () => {
-      tabButtons.forEach((t) => {
-        document.getElementById(`tab-btn-${t}`)?.classList.remove("active");
-        document.getElementById(`${t}-tab-content`)?.classList.add("hidden");
-      });
-      document.getElementById(`tab-btn-${tab}`)?.classList.add("active");
-      document.getElementById(`${tab}-tab-content`)?.classList.remove("hidden");
-    });
   });
 
   // Batch process button
@@ -185,6 +161,17 @@ function bindEvents() {
   document.getElementById("btn-clear-batch")?.addEventListener("click", () => {
     batch?.clear();
     renderBatchQueue([]);
+  });
+
+  // Close slide panels
+  document.getElementById("btn-close-settings")?.addEventListener("click", () => {
+    document.getElementById("settings-panel")?.classList.add("hidden");
+  });
+  document.getElementById("btn-close-history")?.addEventListener("click", () => {
+    document.getElementById("history-panel")?.classList.add("hidden");
+  });
+  document.getElementById("btn-close-batch")?.addEventListener("click", () => {
+    document.getElementById("batch-panel")?.classList.add("hidden");
   });
 
   // Close settings on outside click
@@ -315,11 +302,6 @@ async function handleTranscription() {
     if (result.sentiment) displaySentiment(result.sentiment);
     if (result.formatted_text) displayFormatResult(result.formatted_text);
 
-    // Cognitive Co-Pilot features (2026 AI Era Edition)
-    if (result.metrics) displaySpeakingMetrics(result.metrics);
-    if (result.action_items) displayActionItems(result.action_items);
-    if (result.meeting_outline) displayMeetingOutline(result.meeting_outline);
-
     // Audio player
     const audioUrl = URL.createObjectURL(file);
     showAudioPlayer(audioUrl);
@@ -332,9 +314,6 @@ async function handleTranscription() {
       summary: result.summary,
       segments: result.segments,
       sentiment: result.sentiment,
-      metrics: result.metrics,
-      action_items: result.action_items,
-      meeting_outline: result.meeting_outline,
     });
     loadHistory();
 
@@ -350,8 +329,6 @@ function getTranscribeOptions() {
     translate: document.getElementById("translate")?.checked ?? false,
     summarize: document.getElementById("summarize")?.checked ?? false,
     sentiment: document.getElementById("sentiment-analysis")?.checked ?? false,
-    action_items: document.getElementById("action-items")?.checked ?? false,
-    meeting_outline: document.getElementById("meeting-outline")?.checked ?? false,
     custom_vocab: document.getElementById("custom-vocab")?.value?.trim() || "",
   };
 }
@@ -366,87 +343,28 @@ async function loadHistory() {
   }
 }
 
-async function loadHistoryRecord(id) {
-  try {
-    const records = await getAllTranscripts();
-    const rec = records.find((r) => r.id === id);
-    if (!rec) return;
-    
-    lastResult = rec;
-    clearResults();
-    setStatus("Loaded from history.", "info");
-    
-    displayTranscript(rec.text, rec.language);
-    if (rec.summary) displaySummary(rec.summary);
-    if (rec.segments?.length) displaySegments(rec.segments);
-    if (rec.sentiment) displaySentiment(rec.sentiment);
-    if (rec.formatted_text || rec.formatted) displayFormatResult(rec.formatted_text || rec.formatted);
-    
-    // Restore AI Co-pilot features if present
-    if (rec.metrics) displaySpeakingMetrics(rec.metrics);
-    if (rec.action_items) displayActionItems(rec.action_items);
-    if (rec.meeting_outline) displayMeetingOutline(rec.meeting_outline);
-    
-    // Smooth scroll to results
-    document.getElementById("results-panel")?.scrollIntoView({ behavior: "smooth" });
-    
-    // Close history drawer
-    document.getElementById("history-panel")?.classList.add("hidden");
-    showToast("History item loaded!", "success");
-  } catch (err) {
-    showToast(`Failed to load: ${err.message}`, "error");
-  }
-}
-
 // ─── Waveform Animation ───────────────────────────────────────────────────────
 function startWaveform(analyser) {
   const canvas = document.getElementById("waveform-canvas");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  
-  // Clean, distinct visual equalizer bars
-  analyser.fftSize = 64; 
   const bufferLength = analyser.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
 
   function draw() {
     waveformAnimationId = requestAnimationFrame(draw);
     analyser.getByteFrequencyData(dataArray);
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    const barWidth = (canvas.width / bufferLength) * 0.72;
-    const gap = (canvas.width / bufferLength) * 0.28;
-    const centerY = canvas.height / 2;
-    
-    // Gorgeous neon linear gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#8b5cf6'); // Purple
-    gradient.addColorStop(0.5, '#6366f1'); // Indigo
-    gradient.addColorStop(1, '#8b5cf6'); // Purple
-    
-    ctx.shadowBlur = 14;
-    ctx.shadowColor = 'rgba(99, 102, 241, 0.45)';
-    
+    ctx.fillStyle = "var(--bg)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const barWidth = canvas.width / bufferLength;
     for (let i = 0; i < bufferLength; i++) {
-      const rawVal = dataArray[i] / 255;
-      const val = Math.pow(rawVal, 1.15); // Easing response
-      const barHeight = Math.max(4, val * centerY * 1.6);
-      
-      const x = i * (barWidth + gap) + gap / 2;
-      const y = centerY - barHeight / 2;
-      
-      ctx.fillStyle = gradient;
-      
-      ctx.beginPath();
-      if (typeof ctx.roundRect === "function") {
-        ctx.roundRect(x, y, barWidth, barHeight, 6);
-      } else {
-        ctx.rect(x, y, barWidth, barHeight);
-      }
-      ctx.fill();
+      const barHeight = (dataArray[i] / 255) * canvas.height;
+      const hue = 160 + (dataArray[i] / 255) * 60;
+      ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+      ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 1, barHeight);
+      ctx.fillStyle = `hsla(${hue}, 80%, 60%, 0.3)`;
+      ctx.fillRect(i * barWidth, 0, barWidth - 1, barHeight);
     }
-    ctx.shadowBlur = 0;
   }
   draw();
 }
